@@ -15,6 +15,7 @@ def driver():
     yield driver
     driver.quit()
 
+
 def test_chat_text_message(driver):
     driver.get("http://localhost:3000/login")
 
