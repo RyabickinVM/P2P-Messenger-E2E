@@ -98,6 +98,49 @@ def test_failed_registration(driver):
     assert error_message.is_displayed()
 
 
+def test_form_validation(driver):
+    driver.get("http://localhost:3000/registration")
+
+    registration_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Зарегистрироваться')]")
+    assert registration_button.get_attribute('disabled') is not None
+
+    email = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "email")))
+    username = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "uname")))
+    password = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "psw")))
+
+    email.send_keys("emailTest1@email.com")
+    username.send_keys("test1")
+    password.send_keys("123")
+
+    password_error_message = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH,
+                                                                                               "//p[contains(text(), 'Пароль должен содержать от 6 до 40 символов и может включать буквы, цифры и спец символы.')]")))
+    assert password_error_message.is_displayed()
+    assert registration_button.get_attribute('disabled') is not None
+
+    clearButton = driver.find_element(By.XPATH, "//button[contains(text(), 'Очистить')]")
+    clearButton.click()
+
+    password.send_keys("123aaa")
+    email.send_keys("emailTest1@email.com")
+    username.send_keys("test")
+
+    login_error_message = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH,
+                                                                                            "//p[contains(text(), 'Имя пользователя должно содержать от 4 до 20 символов и должно включать буквы и цифры.')]")))
+    assert login_error_message.is_displayed();
+    assert registration_button.get_attribute('disabled') is not None
+
+    clearButton.click()
+
+    password.send_keys("123aaa")
+    username.send_keys("test1")
+    email.send_keys("emailInvalid")
+
+    login_error_message = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH,
+                                                                                            "//p[contains(text(), 'Некорректный формат email')]")))
+    assert login_error_message.is_displayed();
+    assert registration_button.get_attribute('disabled') is not None
+
+
 def test_cleaning(driver):
     driver.get("http://localhost:3000/login")
 
