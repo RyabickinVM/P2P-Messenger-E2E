@@ -11,12 +11,65 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 
+EMAIL_TEST = 'email_test'
+USERNAME_TEST = 'username_test'
+PASSWORD_TEST = 'pass_test'
+
+
 @pytest.fixture(scope="module")
 def driver():
     driver = webdriver.Chrome()
     yield driver
     driver.quit()
 
+@pytest.fixture
+def login_and_nav_to_profile(driver):
+    driver.get("http://localhost:3000/login")
+
+    username = driver.find_element(By.NAME, "uname")
+    password = driver.find_element(By.NAME, "psw")
+    username.send_keys("testNEW")
+    password.send_keys("aaa111")
+
+    login_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Войти')]")
+    login_button.click()
+
+    WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//h1[contains(text(), 'Добро пожаловать на главную страницу')]")))
+
+    driver.get("http://localhost:3000/profile")
+
+
+def fill_form_field(driver, field_name, value):
+    field = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, field_name)))
+    field.send_keys(value)
+
+
+def fill_registration_form(driver, email, username, password, order=PASSWORD_TEST):
+    clearButton = driver.find_element(By.XPATH, "//button[contains(text(), 'Очистить')]")
+    if(order == "pass_test"):
+        clearButton.click()
+        fill_form_field(driver, "email", email)
+        fill_form_field(driver, "uname", username)
+        fill_form_field(driver, "psw", password)
+    elif(order == "username_test"):
+        clearButton.click()
+        fill_form_field(driver, "email", email)
+        fill_form_field(driver, "psw", password)
+        fill_form_field(driver, "uname", username)
+    elif(order == "email_test"):
+        clearButton.click()
+        fill_form_field(driver, "psw", password)
+        fill_form_field(driver, "uname", username)
+        fill_form_field(driver, "email", email)
+
+
+def fill_profile_form(driver, email, username, password, surname, name, patronymic):
+    fill_form_field(driver, "email", email)
+    fill_form_field(driver, "uname", username)
+    fill_form_field(driver, "psw", password)
+    fill_form_field(driver, "lastName", surname)
+    fill_form_field(driver, "name", name)
+    fill_form_field(driver, "patro", patronymic)
 
 def generate_username() -> str:
     letters = string.ascii_letters + string.digits
@@ -521,3 +574,71 @@ def test_chat_text_message_and_media_file(driver):
     WebDriverWait(driver, 10).until(
         EC.url_changes(f'http://localhost:3000/dashboard/{room_name_str.replace(" ", "%20")}'))
     assert "http://localhost:3000/login" in driver.current_url
+
+
+# ТЕСТЫ ДЛЯ Profile
+def test_save_changes_button_availability(login_and_nav_to_profile, driver):
+    # Проверяем, что кнопка "Сохранить изменения" изначально заблокирована
+    save_changes_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Сохранить изменения')]")
+    assert save_changes_button.get_attribute('disabled') is not None
+
+    # Нажимаем на кнопку "Изменить данные"
+    edit_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Изменить данные')]")
+    edit_button.click()
+
+    # Проверяем, что кнопка "Сохранить изменения" теперь доступна
+    assert save_changes_button.get_attribute('disabled') is None
+
+    # Нажимаем на кнопку "Отменить"
+    cancel_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Отменить')]")
+    cancel_button.click()
+
+    # Проверяем, что кнопка "Сохранить изменения" снова заблокирована
+    assert save_changes_button.get_attribute('disabled') is not None
+
+
+def test_profile_field_validation(login_and_nav_to_profile, driver):
+    edit_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Изменить данные')]")
+    edit_button.click()
+
+    save_changes_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Сохранить изменения')]")
+    save_changes_button.click()
+
+    empty_input_error_message = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH,
+                                                                                      "//p[contains(text(), 'Все поля должны быть заполнены')]")))
+    assert empty_input_error_message.is_displayed()
+
+    fill_profile_form(driver, "emailTest1@email.com", "test1", "aaa123", "1", "1", "1")
+
+    save_changes_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Сохранить изменения')]")
+    save_changes_button.click()
+
+    digits_in_full_name_error_message = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH,
+                                                                                                  "//p[contains(text(), 'Фамилия, имя и отчество могут содержать только буквы')]")))
+
+    assert digits_in_full_name_error_message.is_displayed()
+
+
+def test_success_profile_change(login_and_nav_to_profile, driver):
+    edit_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Изменить данные')]")
+    edit_button.click()
+
+    fill_profile_form(driver, "emailTest1@email.com", "testNEW", "aaa111", "Surname", "Name", "Patronymic")
+
+    save_changes_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Сохранить изменения')]")
+    save_changes_button.click()
+    WebDriverWait(driver, 2).until(EC.url_to_be("http://localhost:3000/home"))
+    driver.get("http://localhost:3000/profile")
+
+    # Ожидание загрузки страницы и элементов профиля
+    WebDriverWait(driver, 2).until(EC.presence_of_element_located((By.XPATH, "//h1[contains(., 'testNEW')]")))
+    WebDriverWait(driver, 2).until(EC.presence_of_element_located((By.XPATH, "//h1[contains(., 'Surname') and contains(., 'Name') and contains(., 'Patronymic')]")))
+
+    # Проверка наличия текста "Здравствуйте, test1"
+    greeting_text = driver.find_element(By.XPATH, "//h1[contains(., 'Surname') and contains(., 'Name') and contains(., 'Patronymic')]")
+    assert greeting_text.is_displayed()
+
+    # Проверка наличия текста "ar ar ar"
+    additional_text = driver.find_element(By.XPATH, "//h1[contains(., 'Surname') and contains(., 'Name') and contains(., 'Patronymic')]")
+
+    assert additional_text.is_displayed()
