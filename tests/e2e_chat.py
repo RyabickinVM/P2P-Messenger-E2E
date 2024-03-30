@@ -169,42 +169,30 @@ def test_failed_registration(driver):
     assert error_message.is_displayed()
 
 
-def test_form_validation(driver):
+def test_registration_validation(driver):
     driver.get("http://localhost:3000/registration")
 
+    # Проверяем, что кнопка "Зарегистрироваться" заблокирована при пустой форме
     registration_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Зарегистрироваться')]")
     assert registration_button.get_attribute('disabled') is not None
 
-    email = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "email")))
-    username = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "uname")))
-    password = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.NAME, "psw")))
+    # Попытка отправить форму с недопустимыми данными (слишком короткий пароль)
+    fill_registration_form(driver, "emailTest1@email.com", "test1", "123", PASSWORD_TEST)
 
-    email.send_keys("emailTest1@email.com")
-    username.send_keys("test1")
-    password.send_keys("123")
-
+    # Проверяем сообщение об ошибке для недопустимого пароля
     password_error_message = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH,
                                                                                                "//p[contains(text(), 'Пароль должен содержать от 6 до 40 символов и может включать буквы, цифры и спец символы.')]")))
     assert password_error_message.is_displayed()
     assert registration_button.get_attribute('disabled') is not None
 
-    clearButton = driver.find_element(By.XPATH, "//button[contains(text(), 'Очистить')]")
-    clearButton.click()
-
-    password.send_keys("123aaa")
-    email.send_keys("emailTest1@email.com")
-    username.send_keys("test")
+    fill_registration_form(driver, "emailTest1@email.com", "test", "123aaa", USERNAME_TEST)
 
     login_error_message = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH,
-                                                                                            "//p[contains(text(), 'Имя пользователя должно содержать от 4 до 20 символов и должно включать буквы и цифры.')]")))
+                                                                                           "//p[contains(text(), 'Имя пользователя должно содержать от 4 до 20 символов и должно включать буквы и цифры.')]" )))
     assert login_error_message.is_displayed();
     assert registration_button.get_attribute('disabled') is not None
 
-    clearButton.click()
-
-    password.send_keys("123aaa")
-    username.send_keys("test1")
-    email.send_keys("emailInvalid")
+    fill_registration_form(driver, "emailInvalid", "test1", "123aaa", EMAIL_TEST)
 
     login_error_message = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH,
                                                                                             "//p[contains(text(), 'Некорректный формат email')]")))
@@ -295,7 +283,6 @@ def test_favorites_2(driver):
 
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/login"))
     assert "http://localhost:3000/registration" in driver.current_url
-    time.sleep(5)
 
     email = driver.find_element(By.NAME, "email")
     username = driver.find_element(By.NAME, "uname")
@@ -307,9 +294,9 @@ def test_favorites_2(driver):
     register_submit_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Зарегистрироваться')]")
     register_submit_button.click()
 
-    WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/registration"))
+    WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/home"))
     assert "http://localhost:3000/home" in driver.current_url
-    time.sleep(2)
+
     # нажимать на кнопку добавления в закладки
     favorite_rooms = driver.find_elements(By.CSS_SELECTOR, ".MuiSvgIcon-root.MuiChip-deleteIcon")
 
