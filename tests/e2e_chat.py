@@ -1,12 +1,14 @@
 import os
+import random
+import string
 import time
 
 import pyautogui
 import pytest
-from selenium.webdriver.chrome import webdriver
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 @pytest.fixture(scope="module")
@@ -14,6 +16,20 @@ def driver():
     driver = webdriver.Chrome()
     yield driver
     driver.quit()
+
+
+def generate_username() -> str:
+    letters = string.ascii_letters + string.digits
+    return ''.join(random.choice(letters) for _ in range(random.randint(4, 20)))
+
+
+def generate_password() -> str:
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choice(characters) for _ in range(random.randint(6, 40)))
+
+
+def generate_email() -> str:
+    return generate_username() + "@yandex.ru"
 
 
 def test_login(driver):
@@ -58,16 +74,18 @@ def test_registration(driver):
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/login"))
     assert "http://localhost:3000/registration" in driver.current_url
 
+    time.sleep(2)
+
     email = driver.find_element(By.NAME, "email")
     username = driver.find_element(By.NAME, "uname")
     password = driver.find_element(By.NAME, "psw")
-    email.send_keys("testusesxr123@yandex.com")
-    username.send_keys("yellow1x23ssy1x2")
-    password.send_keys("string1")
+    email.send_keys(generate_email())
+    username.send_keys(generate_username())
+    password.send_keys(generate_password())
 
     register_submit_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Зарегистрироваться')]")
     register_submit_button.click()
-
+    time.sleep(2)
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/registration"))
     assert "http://localhost:3000/home" in driver.current_url
 
@@ -85,16 +103,16 @@ def test_failed_registration(driver):
     username = driver.find_element(By.NAME, "uname")
     password = driver.find_element(By.NAME, "psw")
 
-    email.send_keys("testusexr123@yandex.com")
-    username.send_keys("yellow")
-    password.send_keys("string1")
+    email.send_keys('user@example.com')
+    username.send_keys(generate_username())
+    password.send_keys(generate_password())
 
     register_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Зарегистрироваться')]")
     register_button.click()
 
     time.sleep(2)
     error_message = driver.find_element(By.XPATH,
-                                        "//div[contains(text(), 'Пользователь с таким email уже существует.')]")
+                                        "//p[contains(text(), 'Пользователь с таким email существует.')]")
     assert error_message.is_displayed()
 
 
@@ -158,8 +176,8 @@ def test_cleaning(driver):
     username.send_keys("yellow")
     password.send_keys("string1")
 
-    register_button = driver.find_element(By.XPATH, '//*[@id="root"]/div/div[2]/div/div[3]/div/button[2]')
-    register_button.click()
+    clear_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Очистить')]")
+    clear_button.click()
 
     assert email.text == ""
     assert username.text == ""
@@ -175,12 +193,14 @@ def test_favorites(driver):
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/login"))
     assert "http://localhost:3000/registration" in driver.current_url
 
+    time.sleep(2)
+
     email = driver.find_element(By.NAME, "email")
     username = driver.find_element(By.NAME, "uname")
     password = driver.find_element(By.NAME, "psw")
-    email.send_keys("1123yansxdex@yandex.com")
-    username.send_keys("asx231x")
-    password.send_keys("string1")
+    email.send_keys(generate_email())
+    username.send_keys(generate_username())
+    password.send_keys(generate_password())
 
     register_submit_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Зарегистрироваться')]")
     register_submit_button.click()
@@ -188,13 +208,14 @@ def test_favorites(driver):
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/registration"))
     assert "http://localhost:3000/home" in driver.current_url
 
-    room_name: str = "zxc123x"
+    room_name: str = generate_username()
 
     room_name_input = driver.find_element(By.XPATH, "/html/body/div/div/div[2]/div/div[2]/div[1]/input")
     room_name_input.send_keys(room_name)
 
     driver.find_element(By.XPATH, "//button[contains(text(), 'Создать комнату')]").click()
 
+    time.sleep(2)
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/home"))
     assert f"http://localhost:3000/dashboard/{room_name}" in driver.current_url
 
@@ -221,13 +242,14 @@ def test_favorites_2(driver):
 
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/login"))
     assert "http://localhost:3000/registration" in driver.current_url
+    time.sleep(5)
 
     email = driver.find_element(By.NAME, "email")
     username = driver.find_element(By.NAME, "uname")
     password = driver.find_element(By.NAME, "psw")
-    email.send_keys("basdlacskholl@yandex.com")
-    username.send_keys("bxalackholl123bh")
-    password.send_keys("string1")
+    email.send_keys(generate_email())
+    username.send_keys(generate_username())
+    password.send_keys(generate_password())
 
     register_submit_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Зарегистрироваться')]")
     register_submit_button.click()
@@ -274,12 +296,15 @@ def test_chat_text_message(driver):
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/login"))
     assert "http://localhost:3000/registration" in driver.current_url
 
+    time.sleep(5)
+
     email = driver.find_element(By.NAME, "email")
     username = driver.find_element(By.NAME, "uname")
     password = driver.find_element(By.NAME, "psw")
-    email.send_keys("testuser1@yandex.com")
-    username.send_keys("first1")
-    password.send_keys("first1!")
+    username_str = generate_username()
+    email.send_keys(generate_email())
+    username.send_keys(username_str)
+    password.send_keys(generate_password())
 
     register_submit_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Зарегистрироваться')]")
     register_submit_button.click()
@@ -287,7 +312,7 @@ def test_chat_text_message(driver):
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/registration"))
     assert "http://localhost:3000/home" in driver.current_url
 
-    room_name_str = "First Room"
+    room_name_str = generate_username()
     room_name = driver.find_element(By.XPATH, "//div[@class='css-96r7gq']//input[@id='messageText']")
     room_name.send_keys(room_name_str)
 
@@ -314,14 +339,14 @@ def test_chat_text_message(driver):
     assert "http://localhost:3000/home" in driver.current_url
     time.sleep(2)
 
-    room_buttom = driver.find_element(By.XPATH, "//div[@id='First Room']")
+    room_buttom = driver.find_element(By.XPATH, f"//div[@id='{room_name_str}']")
     room_buttom.click()
 
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/home"))
     assert f'http://localhost:3000/dashboard/{room_name_str.replace(" ", "%20")}' in driver.current_url
     time.sleep(1)
 
-    user_in_list = driver.find_element(By.XPATH, "//*[contains(text(), 'first1')]")
+    user_in_list = driver.find_element(By.XPATH, f"//*[contains(text(), '{username_str}')]")
     assert user_in_list.is_displayed()
     message_in_history = driver.find_element(By.XPATH, "//*[contains(text(), '1234lox')]")
     assert message_in_history.is_displayed()
@@ -344,12 +369,15 @@ def test_chat_media_file(driver):
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/login"))
     assert "http://localhost:3000/registration" in driver.current_url
 
+    time.sleep(2)
+
     email = driver.find_element(By.NAME, "email")
     username = driver.find_element(By.NAME, "uname")
     password = driver.find_element(By.NAME, "psw")
-    email.send_keys("testuser2@yandex.com")
-    username.send_keys("second2")
-    password.send_keys("second2!")
+    username_str = generate_username()
+    email.send_keys(generate_email())
+    username.send_keys(username_str)
+    password.send_keys(generate_password())
 
     register_submit_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Зарегистрироваться')]")
     register_submit_button.click()
@@ -357,7 +385,7 @@ def test_chat_media_file(driver):
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/registration"))
     assert "http://localhost:3000/home" in driver.current_url
 
-    room_name_str = "Second Room"
+    room_name_str = generate_username()
     room_name = driver.find_element(By.XPATH, "//div[@class='css-96r7gq']//input[@id='messageText']")
     room_name.send_keys(room_name_str)
 
@@ -391,14 +419,14 @@ def test_chat_media_file(driver):
     assert "http://localhost:3000/home" in driver.current_url
     time.sleep(1)
 
-    room_buttom = driver.find_element(By.XPATH, "//div[@id='Second Room']")
+    room_buttom = driver.find_element(By.XPATH, f"//div[@id='{room_name_str}']")
     room_buttom.click()
 
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/home"))
     assert f'http://localhost:3000/dashboard/{room_name_str.replace(" ", "%20")}' in driver.current_url
     time.sleep(1)
 
-    user_in_list = driver.find_element(By.XPATH, "//*[contains(text(), 'second2')]")
+    user_in_list = driver.find_element(By.XPATH, f"//*[contains(text(), '{username_str}')]")
     assert user_in_list.is_displayed()
     media_in_history = driver.find_element(By.XPATH, "//img[@alt='uploaded file']")
     assert media_in_history.is_displayed()
@@ -424,9 +452,10 @@ def test_chat_text_message_and_media_file(driver):
     email = driver.find_element(By.NAME, "email")
     username = driver.find_element(By.NAME, "uname")
     password = driver.find_element(By.NAME, "psw")
-    email.send_keys("testuser3@yandex.com")
-    username.send_keys("third3")
-    password.send_keys("second3!")
+    username_str = generate_username()
+    email.send_keys(generate_email())
+    username.send_keys(username_str)
+    password.send_keys(generate_password())
 
     register_submit_button = driver.find_element(By.XPATH, "//button[contains(text(), 'Зарегистрироваться')]")
     register_submit_button.click()
@@ -434,7 +463,7 @@ def test_chat_text_message_and_media_file(driver):
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/registration"))
     assert "http://localhost:3000/home" in driver.current_url
 
-    room_name_str = "Third Room"
+    room_name_str = generate_username()
     room_name = driver.find_element(By.XPATH, "//div[@class='css-96r7gq']//input[@id='messageText']")
     room_name.send_keys(room_name_str)
 
@@ -473,14 +502,14 @@ def test_chat_text_message_and_media_file(driver):
     assert "http://localhost:3000/home" in driver.current_url
     time.sleep(1)
 
-    room_buttom = driver.find_element(By.XPATH, "//div[@id='Second Room']")
+    room_buttom = driver.find_element(By.XPATH, f"//div[@id='{room_name_str}']")
     room_buttom.click()
 
     WebDriverWait(driver, 10).until(EC.url_changes("http://localhost:3000/home"))
     assert f'http://localhost:3000/dashboard/{room_name_str.replace(" ", "%20")}' in driver.current_url
     time.sleep(1)
 
-    user_in_list = driver.find_element(By.XPATH, "//*[contains(text(), 'second2')]")
+    user_in_list = driver.find_element(By.XPATH, f"//*[contains(text(), '{username_str}')]")
     assert user_in_list.is_displayed()
     media_in_history = driver.find_element(By.XPATH, "//img[@alt='uploaded file']")
     assert media_in_history.is_displayed()
